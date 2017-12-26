@@ -1,0 +1,38 @@
+def get_misclassified_images(test_images):
+    # Track misclassified images by placing them into a list
+    misclassified_images_labels = []
+
+    # Iterate through all the test images
+    # Classify each image and compare to the true label
+    #for image in test_images:
+    for i in range(0,len(test_images)):
+        # Get true data
+        test_im = test_images[i][0]
+        true_label = test_images[i][1]
+        assert(len(true_label) == 3), "The true_label is not the expected length (3)."
+
+        # Get predicted label from your classifier
+        p_label = estimate_label(test_im)
+        #p_label, sums=create_feature(test_im)
+        assert(len(p_label) == 3), "The predicted_label is not the expected length (3)."
+
+        # Compare true and predicted labels 
+        if(p_label != true_label):
+            # If these labels are not equal, the image has been misclassified
+            #print(str(p_label)+"    "+str(true_label))
+            misclassified_images_labels.append((test_im, p_label, true_label))
+            
+    # Return the list of misclassified [image, predicted_label, true_label] values
+    return misclassified_images_labels
+
+
+# Find all misclassified images in a given test set
+MISCLASSIFIED = get_misclassified_images(STANDARDIZED_TEST_LIST)
+
+# Accuracy calculations
+total = len(STANDARDIZED_TEST_LIST)
+num_correct = total - len(MISCLASSIFIED)
+accuracy = num_correct/total
+
+print('Accuracy: ' + str(accuracy))
+print("Number of misclassified images = " + str(len(MISCLASSIFIED)) +' out of '+ str(total))

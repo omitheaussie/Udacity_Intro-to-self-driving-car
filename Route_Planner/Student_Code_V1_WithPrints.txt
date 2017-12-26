@@ -1,0 +1,207 @@
+import math
+import copy
+from helpers import Map, load_map, show_map
+M=0
+goal=0
+start=0
+explored=[]
+frontier=[]
+
+def shortest_path(Mlocal,start_local,goal_local):
+    setglobalmap(Mlocal,goal_local,start_local)
+    path={'1': [start]}
+    #mincost=findmincost(path,M.intersections[start],M.intersections[goal])
+    mincost=findmincost(path['1'])
+    path['1'].append(mincost)
+    result=[path['1'][-2]]
+    frontier=[path['1'][-2]]
+    roadstosend=M.roads[path['1'][-2]]
+    while not(pathfoundandmincost(path,goal)):
+        print("path", path)
+        
+        ex=str(whattoexpandnext(path))
+        if ex=='0':
+            sendpath=copy.deepcopy(path)
+            print("Path:", path)
+            result=returnleastvaluepath(sendpath,path)
+            return result
+        
+        print("ex:",ex)
+        if path[ex][-2] not in explored:
+            explored.append(path[ex][-2])
+        print("Explored:", explored)
+        #Finding roads to send
+        print("original roads:", M.roads[path[ex][-2]])
+        b3=[val for val in explored if val in M.roads[path[ex][-2]]]
+        roadstosend=copy.deepcopy(M.roads[path[ex][-2]])
+        for val in b3:
+            if val in roadstosend:
+                roadstosend.remove(val)
+        
+        print("Adding roads to frontier:", roadstosend)
+        if len(roadstosend)>0:
+            for r in roadstosend:
+                if r not in explored:
+                    if r not in frontier:
+                        frontier.append(r)
+            #print(path[ex][len(path[ex])-2])
+            print("Frontier before removing", path[ex][len(path[ex])-2], "from frontier:", frontier)
+            frontier.remove(path[ex][len(path[ex])-2])
+            print("Frontier after removing", path[ex][len(path[ex])-2], "from frontier:", frontier)
+            
+            #print("Roads being passed", M.roads[path[ex][-2]])
+            path=expandedpath(path,roadstosend,ex)
+            #print(path)
+            #print("frontier:", frontier)
+            print(path[ex][0:-2])
+            print(" ")
+        else:
+            print("Popping:", ex)
+            print(" ")
+            path.pop(ex,None)
+        #show_map(M, start, goal, path[ex][0:-2])
+        
+        
+    #print(path)
+    if pathfoundandmincost(path,goal):
+        mincost=path['1'][-1]
+        for p in path:
+            if path[p][-1]<mincost:
+                result=path[p][1:len(path[p])]
+
+    return result
+
+def returnleastvaluepath(sendpath,path):
+    
+    for p in sendpath:
+        if sendpath[p][-2]!=goal:
+            path.pop(p,None)
+    
+    print("Paths with only goals at ends:", path)
+    tempindex=next(iter(path))
+    leastval=path[tempindex][-1]
+    result=tempindex
+    print("leastval", leastval)
+    for p in path:
+        curval=path[p][-1]
+        if curval<leastval:
+            leastval=curval
+            result=p
+    print("Path returning:", path[result][0:-1])
+    show_map(M, start, goal, path[result][0:-1])
+    return path[result][0:-1]
+
+def setglobalmap(Mlocal, goal_local, start_local):
+    global M
+    global goal
+    global explored
+    global frontier
+    global start
+    M=Mlocal
+    goal=goal_local
+    start=start_local
+    
+def direct_dist(a,b):
+    return math.sqrt((b[0]-a[0])**2+(b[1]-a[1])**2)
+
+def findmincost(path):
+    mincost=0
+    if len(path)==1:
+        mincost=mincost+direct_dist(M.intersections[path[0]],M.intersections[goal])
+        return mincost
+    for l in range(len(path)-1):
+        mincost=mincost+direct_dist(M.intersections[path[l]],M.intersections[path[l+1]])
+    
+    mincost=mincost+direct_dist(M.intersections[path[len(path)-1]],M.intersections[goal])
+        
+    return mincost
+
+def pathfoundandmincost(path,goal):
+    #print("XXXXXXXXX", path)
+    minindex=next(iter(path))
+    minval=path[minindex][-1]
+    goalpath='0'
+    for p in path:
+        if path[p][-1]<minval:
+            minval=path[p][-1]
+            minindex = p
+    for p in path:
+        if path[p][-2]==goal:
+            goalfound=True
+            goalpath=p
+    #print("goalpath:", goalpath)
+    
+    if goalpath==minindex:
+        #print("returning True")
+        return True
+    else:
+        #print("returning False")
+        return False
+
+def whattoexpandnext(path):
+    #tempindex=next(iter(path))
+    #minval=path[tempindex][-1]
+    #print(minval)
+    #expnd=tempindex
+    minval=0
+    expnd=0
+    #print(explored)
+    for p in path:
+        #print(path[p][-1], ",", minval)
+        if path[p][-2] not in explored:
+            if path[p][-2] != goal:
+                minval=path[p][-1]
+                expnd=p
+                #print(minval, " ", goal)
+    for p in path:    
+        if path[p][-1]<minval:
+            if path[p][-2] not in explored:
+                if path[p][-2] != goal:
+                    if len(M.roads[path[p][-2]])>0:
+                        expnd=p
+                        minval=path[p][-1]
+            #print("Now expnd is:", expnd)
+    return expnd
+
+def expandedpath(path,roads,ex):
+
+    exppath=copy.deepcopy(path)
+    curlengthofpath=len(path)
+    #print("Current length of path", curlengthofpath)
+    curpath=[]
+    exoriginal=0
+    exoriginal=ex
+    #print(curpath)
+    curpath=copy.deepcopy(path[ex][0:-1])
+    curmincost=0
+    curmincost=copy.deepcopy(path[ex][-1])
+    #print("Current path to expand", curpath)
+    #print("Lenght of roads", len(roads))
+    for r in range(len(roads)):
+        #print(r)
+        if r==0:
+            #print(path[ex])
+            exppath[ex]=curpath
+            #print(path[ex])
+            exppath[ex].append(roads[r])
+            #print(path[ex])
+            #c1=direct_dist(M.intersections[curpath[0]],M.intersections[roads[r]])
+            #c2=direct_dist(M.intersections[roads[r]],M.intersections[goal])
+            #exppath[ex].append(curmincost+c1+c2)
+            #print("exppath:", exppath[ex])
+            exppath[ex].append(findmincost(exppath[ex]))
+            ex=curlengthofpath+1
+            #print(path)
+        else:
+            #print(curpath, ",", ex, ",", r)
+            exppath[str(ex)]=path[exoriginal][0:-1]
+            #print(path[str(curlengthofpath+r)])
+            exppath[str(ex)].append(roads[r])
+            #c1=direct_dist(M.intersections[path[exoriginal][0:-1][0]],M.intersections[roads[r]])
+            #c2=direct_dist(M.intersections[roads[r]],M.intersections[goal])
+            #exppath[str(ex)].append(curmincost+c1+c2)
+            #print("exppath2", exppath[str(ex)])
+            exppath[str(ex)].append(findmincost(exppath[str(ex)]))
+            #print(path)
+            ex=ex+1
+    return exppath
